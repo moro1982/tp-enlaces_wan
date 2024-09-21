@@ -1,0 +1,251 @@
+\documentclass{article}
+\usepackage{graphicx} % Required for inserting images
+\usepackage[spanish]{babel}
+\usepackage{multirow}
+
+\title{ Trabajo Práctico \\ 
+    \vspace{15}
+    \textit{Enlaces WAN} \\
+}
+\author{Nicolás Fagetti}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{HDLC}
+
+Ingresamos a la terminal CLI del Router 0 y ejecutamos el comando: \\\\
+\texttt{R0\# show controllers} \\
+
+Como resultado, obtuvimos mucha información sobre las interfaces Serial de cada Router. Entre los datos destacables para la consigna, encontramos: \\\\
+\texttt{
+R0\# show controllers
+Interface Serial0/1/0
+Hardware is PowerQUICC MPC860
+DTE V.35 TX and RX clocks detected
+} \\
+(...) \\
+\texttt{
+Interface Serial0/1/1
+Hardware is PowerQUICC MPC860
+No serial cable attached
+} \\
+(...) \\
+\texttt{
+R1\# show controllers
+Interface Serial0/1/0
+Hardware is PowerQUICC MPC860
+DCE V.35, clock rate 2000000
+} \\
+(...) \\
+\texttt{
+Interface Serial0/1/1
+Hardware is PowerQUICC MPC860
+No serial cable attached
+} \\
+(...) \\
+
+De estos datos, confirmamos que el extremo DCE del cable serial se encuentra conectado a la interfaz Serial0/1/0 del Router 1, y además que su señal de clock está establecida en 2000000 bps. La modificamos a 250000 bps ingresando el comando \texttt{clock rate}: \\\\
+\texttt{
+R1(config)\# interface serial 0/1/0
+R1(config-if)\# clock rate 250000
+} \\
+
+Una vez modificado el clock rate, verificamos que se haya realizado dicho cambio: \\\\
+\texttt{
+R1\# show controllers
+Interface Serial0/1/0
+Hardware is PowerQUICC MPC860
+DCE V.35, clock rate 250000
+} \\
+(...) \\
+
+Al ingresar el comando \texttt{show interfaces} en modo EXEC, nos arroja nuevamente mucha información sobre las interfaces, notando lo siguiente: \\\\
+
+\texttt{
+    GigabitEthernet0/0/0 is administratively down, line protocol is down (disabled) \\
+    Hardware is ISR4331-3x1GE, address is 00d0.d3e7.2401 (bia 00d0.d3e7.2401)
+}
+(...) \\
+
+\texttt{
+    GigabitEthernet0/0/1 is administratively down, line protocol is down (disabled) \\
+    Hardware is ISR4331-3x1GE, address is 00d0.d3e7.2402 (bia 00d0.d3e7.2402)
+}
+(...) \\
+\texttt{
+  Encapsulation ARPA, loopback not set
+} \\
+(...) \\
+\texttt{
+  Queueing strategy: fifo
+} \\
+(...) \\
+
+\texttt{
+    GigabitEthernet0/0/2 is administratively down, line protocol is down (disabled) \\
+    Hardware is ISR4331-3x1GE, address is 00d0.d3e7.2403 (bia 00d0.d3e7.2403)
+}
+  (...) \\
+\texttt{
+  Encapsulation ARPA, loopback not set
+} \\
+  (...) \\
+\texttt{  
+  Queueing strategy: fifo
+}
+(...) \\
+
+\texttt{
+Serial0/1/0 is administratively down, line protocol is down (disabled) \\
+  Hardware is HD64570 \\
+  Internet address is 192.168.10.6/30
+}
+  (...) \\
+\texttt{
+  Encapsulation HDLC, loopback not set, keepalive set (10 sec)
+} \\
+  (...) \\
+\texttt{
+  Queueing strategy: weighted fair
+} \\
+(...) \\
+
+\texttt{
+Serial0/1/1 is administratively down, line protocol is down (disabled) \\
+  Hardware is HD64570
+} \\
+  (...) \\
+\texttt{
+  Encapsulation HDLC, loopback not set, keepalive set (10 sec)
+} \\
+  (...) \\
+\texttt{
+  Queueing strategy: weighted fair
+} \\
+(...) \\
+
+\texttt{
+Vlan1 is administratively down, line protocol is down \\
+  Hardware is CPU Interface, address is 000a.41ba.dd08 (bia 000a.41ba.dd08)
+}
+  (...) \\
+\texttt{
+  Encapsulation ARPA, loopback not set
+} \\
+  (...) \\
+\texttt{
+  Queueing strategy: fifo
+} \\
+(...) \\
+
+De la información destacada, observamos que tanto las interfaces de GigabitEthernet como las Serial, así como la VLAN se encuentran deshabilitadas. En las interfaces Serial notamos que el protocolo de encapsulamiento es HDLC, lo cual es correcto. En la interfaz Serial0/1/0 de cada Router notamos que tiene asignada una dirección IP. \\
+
+Para habilitar las interfaces de los Routers correspondientes a la conexión serial, intentamos hacerlo a través del comando \texttt{no shutdown} en el modo \texttt{config-if}, pero pasa de estar en estado \texttt{administratively down} a simplemente \texttt{down}. Intentamos un par de veces más, sin éxito. Finalmente, pudimos activar la interfaz desde la pestaña ``Config'', clickeando en la casilla ``On'', tras lo cual apareció el siguiente mensaje en la terminal CLI: \\\\
+\texttt{
+R1(config)\# interface Serial0/1/0 \\
+R1(config-if)\# \\\\
+\%LINK-5-CHANGED: Interface Serial0/1/0, changed state to up \\\\
+\%LINEPROTO-5-UPDOWN: Line protocol on Interface Serial0/1/0, changed state to up \\\\
+R0(config-if)\# \\\\
+\%LINK-5-CHANGED: Interface Serial0/1/0, changed state to up \\\\
+\%LINEPROTO-5-UPDOWN: Line protocol on Interface Serial0/1/0, changed state to up \\
+} \\
+
+Al enviar -en modo Realtime- un ping desde el Router 1 hacia la dirección IP del otro, vemos que la comunicación se establece correctamente: \\\\
+\texttt{
+R1\# ping 192.168.10.5 \\\\
+Type escape sequence to abort. \\
+Sending 5, 100-byte ICMP Echos to 192.168.10.5, timeout is 2 seconds: \\
+!!!!! \\
+Success rate is 100 percent (5/5), round-trip min/avg/max = 4/9/19 ms
+} \\
+
+\subsection{La trama cHDLC}
+
+\textit{Tipos de mensajes SLARP:} \\
+
+- address requests (0x00) \\
+- address replies (0x01) \\
+- keep-alive frames (0x02) \\
+
+Los mensajes SLARP analizados en Wireshark son de tipo keep-alive. \\\\
+
+\textit{Secuencia de los mensajes SLARP.} \\
+
+- El número de secuencia del emisor se incrementa con cada keep-alive enviado por el mismo. \\
+- El número de secuencia recibido es el último número de secuencia recibido por el emisor. \\\\
+
+\textit{Timing de los mensajes SLARP.} \\
+
+- Los mensajes SLARP se envían de forma sincronizada, en ventanas de 1,416098 segundos entre el envío y la respuesta. Cada mensaje de envío es emitido cada 10 segundos aproximadamente, como se muestra en la tabla copiada del archivo ``hdlc.cap'': \\\\
+\texttt{
+    \begin{tabular}{ l l l l l l p{7cm} }
+        1 &	0.000000 & N/A & N/A & SLARP & 24 &	Line keepalive, outgoing sequence 5, returned sequence 2 \\
+        2 &	1.416098 & N/A & N/A & SLARP & 24 & Line keepalive, outgoing sequence 3, returned sequence 5 \\
+        3 &	10.004563 &	N/A & N/A &	SLARP &	24 & Line keepalive, outgoing sequence 6, returned sequence 3 \\
+        4 &	11.420687 &	N/A & N/A &	SLARP &	24 & Line keepalive, outgoing sequence 4, returned sequence 6 \\
+        5 &	20.001117 &	N/A & N/A &	SLARP &	24 & Line keepalive, outgoing sequence 7, returned sequence 4 \\
+        6 &	21.417218 &	N/A & N/A &	SLARP &	24 & Line keepalive, outgoing sequence 5, returned sequence 7 \\
+    \end{tabular}
+} \\\\\\
+
+\textit{Valor de \texttt{protocol} para los mensajes SLARP.} \\\\
+- El valor del campo \texttt{protocol} para los mensajes SLARP es 0x8035.\\\\
+
+\textit{Valor de \texttt{protocol} para los mensajes unicast.} \\\\
+- El valor del campo \texttt{protocol} para los mensajes unicast (ICMP) es 0x0800. \\\\
+
+\textit{Secuencia de los mensajes unicast.} \\\\
+El numero de Secuencia en los mensajes unicast comienza en 0 y se va incrementando en 1 cada vez que se envía un nuevo mensaje. El número es almacenado en formato BigEndian (BE) y LittleEndian (LE) (0x0001 y 0x0100, por ejemplo). \\\\
+
+De lo anterior, podemos observar que el timing para los mensajes SLARP (10 segundos) aparece en la información de la interfaz Serial: \\\\
+(...) \\
+\texttt{Encapsulation HDLC, loopback not set, keepalive set (10 sec)} \\
+(...) \\
+
+En el caso de los mensajes de protocolo ICMP, la secuenciación es importante para llevar la cuenta de la cantidad de mensajes ping enviados. \\
+
+En el caso del protocolo SLARP, el secuenciamiento es importante para identificar la relación de orden entre los mensajes. \\
+
+Al observar la trama del protocolo ICMP, notamos que en la capa 2 no se encuentra la información de origen y destino de las transmisiones, ya que se encuentra en la cabecera de la capa 3 (protocolo IP). \\
+
+\section{PPP}
+
+Al modificar el escenario de los 2 Routers, observamos que al establecer el protocolo PPP para la interfaz Serial 0/1/0 del Router 1, el LCP (Link Control Protocol) activa la interfaz, aunque el protocolo LCP figura como \texttt{closed}. Sin embargo luego, al hacer lo mismo en el otro Router, ambos comienzan a negociar y LCP pasará a estar en \texttt{open} en ambos extremos. \\
+
+Observando más detenidamente la trama PPP, notamos que el primer campo (\texttt{address}) indica una dirección de difusión estándar (0xff). Luego tenemos un campo de control (siempre con el valor 0x03), y a continuación el campo \texttt{protocol}, con el valor 0xc021, correspondiente al protocolo PPP. \\
+
+Seguidamente, tenemos los campos correspondientes al protocolo LCP. En primer lugar, aparece un byte con el código del tipo de protocolo PPP (en este caso, 0x09 o 0x0a, correspondientes a los mensajes de ``echo request'' y ``echo reply'', respectivamente. Luego, tenemos el campo ``identifier'', cuyo valor comienza en 0x0b, y se incrementa cada 4 mensajes. Finalmente, tendremos el campo con la longitud de la trama (12) y otro campo de 32 bits con el ``número mágico'', cuyo valor utiliza para detectar ciclos de enlaces comparando su número mágico con el equivalente recibido. \\
+
+El ciclo de envío de mensajes sucede cada 10 segundos, enviando 2 ``echo request'' en un lapso de aproximadamente 5 milisegundos. \\
+
+Por último, ensayamos la configuración de la autenticación PAP ingresando los comandos indicados en la consigna, en ambos extremos de la conexión. Lo que pudimos notar es que luego de ingresar correctamente los comandos, verificamos que al intentar ingresar al modo ``enable'', nos solicita el password: \\\\
+\texttt{
+R0(config)\# enable password cisco0 \\
+R0(config)\# username R1 password cisco1 \\
+R0(config)\# interface serial 0/1/0 \\
+R0(config-if)\# ppp authentication pap \\
+R0(config-if)\# ppp pap sent-username R0 password cisco0 \\
+R0(config-if)\# end \\
+}
+(...) \\
+\texttt{
+R0> enable \\
+Password: (ingresamos 'cisco0') \\
+R0\#
+} \\
+
+\newpage
+\section{Referencias}
+\begin{itemize}
+    \item Fuente del documento: https://github.com/moro1982/tp-enlaces\_wan
+    \item https://pauluz.tripod.com/Cisco/serialswenson.html 
+    \item https://planificacionadministracionredes.readthedocs.io/es/latest/Tema08/Teoria.html
+    \item https://openmaniak.com/ping.php#ping-output-analysis
+    \item https://www.cloudflare.com/es-es/learning/ddos/glossary/internet-control-message-protocol-icmp/
+    \item https://www.sapalomera.cat/moodlecf/RS/4/course/module3/3.2.2.4/3.2.2.4.html
+\end{itemize} \\
+\end{document}
